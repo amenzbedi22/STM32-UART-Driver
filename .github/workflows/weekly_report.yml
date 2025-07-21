@@ -1,18 +1,18 @@
-name: Weekly Report Generator
+name: Weekly AI Report Generator
 
 on:
   schedule:
-    - cron: '19  0 * * 1'  # Every Monday at 01:15 UTC
+    - cron: '24 à * * 1'  # Every Monday at 01:15 UTC
 
 jobs:
-  generate_and_commit_report:
+  generate_report:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
@@ -22,21 +22,28 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests python-dateutil
 
-      - name: Run report generation script
-        run: |
-          python your_script.py
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run gather_data.py to generate prompt.txt
+        run: python gather_data.py
 
-      - name: Commit and push report
+      - name: AI Inference - Generate Weekly Report
+        id: ai_infer
+        uses: openai/ai-inference@v1
+        with:
+          api_key: ${{ secrets.OPENAI_API_KEY }}
+          model: gpt-4o-mini
+          prompt_file: prompt.txt
+          max_tokens: 1000
+          temperature: 0.5
+
+      - name: Save AI response to file
+        run: echo "${{ steps.ai_infer.outputs.completion }}" > weekly_report.md
+
+      - name: Commit and push AI generated report
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-          # If your script outputs to "weekly_report.md"
           git add weekly_report.md
-
-          git commit -m "Weekly report update - $(date -u +'%Y-%m-%d')"
+          git commit -m "Weekly AI-generated report update - $(date -u +'%Y-%m-%d')"
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
