@@ -2,7 +2,7 @@ name: Weekly AI Report Generator
 
 on:
   schedule:
-    - cron: '24 à * * 1'  # Every Monday at 01:15 UTC
+    - cron: '24 0 * * 1'  # Every Monday at 01:15 UTC
 
 jobs:
   generate_report:
