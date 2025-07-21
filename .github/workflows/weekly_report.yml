@@ -1,15 +1,15 @@
-name: Weekly GitHub Report
+name: Weekly Report Generator
 
 on:
   schedule:
-    # Runs every Monday at 01:15 AM UTC
-    - cron: '15 0 * * 1'
+    - cron: '19  0 * * 1'  # Every Monday at 01:15 UTC
 
 jobs:
-  generate_report:
+  generate_and_commit_report:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v3
 
       - name: Set up Python
@@ -22,36 +22,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests python-dateutil
 
-      - name: Run prompt generator script
+      - name: Run report generation script
+        run: |
+          python your_script.py
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python generate_prompt.py
-          
-      - name: Read prompt.txt content
-        id: read_prompt
-        run: |
-          PROMPT=$(cat prompt.txt)
-          echo "::set-output name=prompt::$PROMPT"
-
-      - name: Run AI inference to generate report
-        id: ai_inference
-        uses: openai/ai-inference-action@v1
-        with:
-          model: gpt-4o-mini
-          prompt: ${{ steps.read_prompt.outputs.prompt }}
-          max_tokens: 1000
-          temperature: 0.3
-
-      - name: Save AI-generated report to file
-        run: echo "${{ steps.ai_inference.outputs.text }}" > weekly_report.md
 
       - name: Commit and push report
         run: |
-          git config --local user.name "github-actions[bot]"
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # If your script outputs to "weekly_report.md"
           git add weekly_report.md
-          git commit -m "Weekly AI generated GitHub report"
+
+          git commit -m "Weekly report update - $(date -u +'%Y-%m-%d')"
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
