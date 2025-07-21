@@ -3,7 +3,7 @@ name: Weekly AI Report Generator
 on:
   schedule:
     - cron: '24 0 * * 1'  # Every Monday at 01:15 UTC
-
+  workflow_dispatch:       # Enables manual trigger from GitHub UI
 jobs:
   generate_report:
     runs-on: ubuntu-latest
