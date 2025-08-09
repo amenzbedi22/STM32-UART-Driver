@@ -9,7 +9,7 @@ jobs:
   generate-report:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write  # Needed to push commits
 
     steps:
       - name: Checkout repository
@@ -28,18 +28,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Call OpenAI ChatGPT Action
+      - name: Read AI prompt from file into env var
+        run: |
+          echo "PROMPT<<EOF" >> $GITHUB_ENV
+          cat reports/prompt.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Call OpenAI ChatGPT
         id: chatgpt
-        uses: cahaseler/openai-chatgpt-action@v1.0.0
+        uses: openai/openai@v1.5.0
         with:
-          apiKey: ${{ secrets.OPENAI_API_KEY }}
-          model: gpt-4
-          prompt: |
-            $(cat reports/prompt.txt)
+          model: gpt-4o-mini
+          api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt: ${{ env.PROMPT }}
 
       - name: Save AI response as report
-        run: |
-          echo "${{ steps.chatgpt.outputs.response }}" > reports/Weekly_Report.md
+        run: echo "${{ steps.chatgpt.outputs.completion }}" > reports/Weekly_Report.md
 
       - name: Commit and push report
         run: |
