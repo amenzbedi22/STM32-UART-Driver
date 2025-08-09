@@ -21,29 +21,37 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install requests python-dateutil
+        run: pip install requests python-dateutil openai
 
       - name: Generate AI prompt with Python
         run: python .github/scripts/generate_prompt.py
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Read AI prompt from file into env var
+      - name: Call OpenAI API via inline Python
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          echo "PROMPT<<EOF" >> $GITHUB_ENV
-          cat reports/prompt.txt >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          python - <<EOF
+          import openai
+          from pathlib import Path
+          import os
 
-      - name: Call OpenAI ChatGPT
-        id: chatgpt
-        uses: openai/openai@v1
-        with:
-          model: gpt-4o-mini
-          api-key: ${{ secrets.OPENAI_API_KEY }}
-          prompt: ${{ env.PROMPT }}
+          openai.api_key = os.getenv("OPENAI_API_KEY")
+          prompt = Path("reports/prompt.txt").read_text()
 
-      - name: Save AI response as report
-        run: echo "${{ steps.chatgpt.outputs.completion }}" > reports/Weekly_Report.md
+          response = openai.ChatCompletion.create(
+              model="gpt-4o-mini",
+              messages=[
+                  {"role": "system", "content": "You are a helpful assistant that writes concise weekly project reports."},
+                  {"role": "user", "content": prompt}
+              ],
+              temperature=0.5,
+              max_tokens=500
+          )
+
+          Path("reports/Weekly_Report.md").write_text(response.choices[0].message["content"])
+          EOF
 
       - name: Commit and push report
         run: |
