@@ -1,4 +1,34 @@
-      - name: Call OpenAI API via inline Python
+name: Weekly AI Report
+
+on:
+  schedule:
+    - cron: "0 9 * * FRI"  # Every Friday at 09:00 UTC
+  workflow_dispatch:
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Needed to push commits
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests python-dateutil openai
+
+      - name: Generate AI prompt with Python
+        run: python .github/scripts/generate_prompt.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Call OpenAI API via inline Python with debug
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -11,13 +41,14 @@
           try:
               openai.api_key = os.getenv("OPENAI_API_KEY")
               prompt_path = Path("reports/prompt.txt")
+
               if not prompt_path.exists():
-                  print("ERROR: prompt.txt not found!")
+                  print("ERROR: reports/prompt.txt does not exist!")
                   sys.exit(1)
 
-              prompt = prompt_path.read_text()
-              if not prompt.strip():
-                  print("ERROR: prompt.txt is empty!")
+              prompt = prompt_path.read_text().strip()
+              if not prompt:
+                  print("ERROR: reports/prompt.txt is empty!")
                   sys.exit(1)
 
               print("Prompt preview (first 200 chars):")
@@ -40,6 +71,18 @@
               Path("reports/Weekly_Report.md").write_text(report_text)
 
           except Exception as e:
-              print("Exception occurred:", e)
+              print("Exception during OpenAI API call:", e)
               sys.exit(1)
           EOF
+
+      - name: Commit and push report if changed
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add reports/Weekly_Report.md
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: add weekly AI report"
+            git push
+          fi
