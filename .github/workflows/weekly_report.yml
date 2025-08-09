@@ -36,7 +36,7 @@ jobs:
 
       - name: Call OpenAI ChatGPT
         id: chatgpt
-        uses: openai/openai@v1.5.0
+        uses: openai/openai@v1
         with:
           model: gpt-4o-mini
           api-key: ${{ secrets.OPENAI_API_KEY }}
