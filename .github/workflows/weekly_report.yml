@@ -28,7 +28,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Call OpenAI API via inline Python with debug
+      - name: Call OpenAI API via inline Python with new syntax
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -54,7 +54,7 @@ jobs:
               print("Prompt preview (first 200 chars):")
               print(prompt[:200])
 
-              response = openai.ChatCompletion.create(
+              response = openai.chat.completions.create(
                   model="gpt-4o-mini",
                   messages=[
                       {"role": "system", "content": "You are a helpful assistant that writes concise weekly project reports."},
@@ -64,7 +64,7 @@ jobs:
                   max_tokens=500
               )
 
-              report_text = response.choices[0].message["content"]
+              report_text = response.choices[0].message.content
               print("Response preview (first 200 chars):")
               print(report_text[:200])
 
