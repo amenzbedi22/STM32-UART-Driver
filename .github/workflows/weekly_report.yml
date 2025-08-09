@@ -2,7 +2,7 @@ name: Weekly AI Report
 
 on:
   schedule:
-    - cron: "0 9 * * FRI" # every Friday at 09:00 UTC
+    - cron: "0 9 * * FRI"  # Every Friday at 09:00 UTC
   workflow_dispatch:
 
 jobs:
@@ -10,8 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -22,19 +23,25 @@ jobs:
       - name: Install dependencies
         run: pip install requests python-dateutil
 
-      - name: Generate AI prompt
+      - name: Generate AI prompt with Python
         run: python .github/scripts/generate_prompt.py
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run AI Inference
-        uses: github/ai-inference@v1
+      - name: Call OpenAI ChatGPT Action
+        id: chatgpt
+        uses: cahaseler/openai-chatgpt-action@v1.0.0
         with:
-          model: gpt-4o-mini
-          input_file: reports/prompt.txt
-          output_file: reports/Weekly_Report.md
+          apiKey: ${{ secrets.OPENAI_API_KEY }}
+          model: gpt-4
+          prompt: |
+            $(cat reports/prompt.txt)
 
-      - name: Commit report
+      - name: Save AI response as report
+        run: |
+          echo "${{ steps.chatgpt.outputs.response }}" > reports/Weekly_Report.md
+
+      - name: Commit and push report
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
