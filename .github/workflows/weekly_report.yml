@@ -1,49 +1,43 @@
-name: Weekly AI Report Generator
+name: Weekly AI Report
 
 on:
   schedule:
-    - cron: '24 0 * * 1'  # Every Monday at 01:15 UTC
-  workflow_dispatch:       # Enables manual trigger from GitHub UI
-jobs:
-  generate_report:
-    runs-on: ubuntu-latest
+    - cron: "0 9 * * FRI" # every Friday at 09:00 UTC
+  workflow_dispatch:
 
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: "3.11"
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests python-dateutil
+        run: pip install requests python-dateutil
 
-      - name: Run gather_data.py to generate prompt.txt
-        run: python gather_data.py
-
-      - name: AI Inference - Generate Weekly Report
-        id: ai_infer
-        uses: openai/ai-inference@v1
-        with:
-          api_key: ${{ secrets.OPENAI_API_KEY }}
-          model: gpt-4o-mini
-          prompt_file: prompt.txt
-          max_tokens: 1000
-          temperature: 0.5
-
-      - name: Save AI response to file
-        run: echo "${{ steps.ai_infer.outputs.completion }}" > weekly_report.md
-
-      - name: Commit and push AI generated report
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add weekly_report.md
-          git commit -m "Weekly AI-generated report update - $(date -u +'%Y-%m-%d')"
-          git push
+      - name: Generate AI prompt
+        run: python .github/scripts/generate_prompt.py
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run AI Inference
+        uses: github/ai-inference@v1
+        with:
+          model: gpt-4o-mini
+          input_file: reports/prompt.txt
+          output_file: reports/Weekly_Report.md
+
+      - name: Commit report
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add reports/Weekly_Report.md
+          git commit -m "chore: add weekly AI report"
+          git push
